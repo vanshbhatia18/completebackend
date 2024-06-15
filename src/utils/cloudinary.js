@@ -18,13 +18,28 @@ const cloudinaryUpload = async (localfilePath) => {
     fs.unlinkSync(localfilePath);
     return response;
   } catch (error) {
+    console.log(error);
     fs.unlinkSync(localfilePath);
     // remove the localfilepath if uploading to cloudnary failed ;
     return null;
   }
 };
 
-export { cloudinaryUpload };
+const cloudinaryDeleteFile = async (localFilePath) => {
+  try {
+    const response = await cloudinary.uploader.destroy(localFilePath, {
+      resource_type: "image",
+    });
+    if (!response) {
+      console.log("not able to delete file");
+    }
+    console.log("cloudinary response is ", response);
+    return response;
+  } catch (error) {
+    console.log("erorr while deleting the file", error);
+  }
+};
+export { cloudinaryUpload, cloudinaryDeleteFile };
 /*
 export { cloudinaryUpload };
 cloudinary.uploader.upload(
