@@ -9,7 +9,7 @@ import {
   updateAvater,
   updateCoverImage,
   getUserChannelProfile,
-  getWatchHistory,
+  getWatchHistory,checkAuth
 } from "../controllers/user.controller.js";
 import { upload } from "../middlewares/multer.middleware.js";
 import { jwtVerify } from "../middlewares/auth.middleware.js";
@@ -32,7 +32,7 @@ router.route("/register").post(
 );
 
 router.route("/login").post(loginUser);
-
+router.route("/check-auth").get(jwtVerify, checkAuth) ;
 router.route("/logout").post(jwtVerify, logoutUser);
 router.route("/refresh-token").post(refreshAccessToken);
 router.route("/change-password").post(jwtVerify, changecurrentPassword);

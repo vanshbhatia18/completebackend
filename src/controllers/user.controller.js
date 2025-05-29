@@ -33,11 +33,17 @@ const registorUser = asyncHandler(async (req, res) => {
   // return response
   try {
     const { fullName, email, password, username } = req.body;
-
+console.log(username,"username is this")
     /*
   if (fullName === "") {
     return ApiError(400, "full name is required");
   } */
+  const feilds = {fullName, email, password, username}
+ 
+  for(const [key,value] of Object.entries(feilds)) {
+    if (!value?.trim()) {
+      throw new ApiError(400, `${key} is required`); }
+  }   
 
     if (
       [fullName, email, password, username].some(
@@ -46,6 +52,7 @@ const registorUser = asyncHandler(async (req, res) => {
     ) {
       throw new ApiError(400, "full name is required");
     }
+    console.log(email,"email is")
     const existedUser = await User.findOne({
       $or: [{ email }, { username }],
     });
@@ -55,6 +62,7 @@ const registorUser = asyncHandler(async (req, res) => {
     //console.log(req.files.avatar[0]);
 
     // req.files by multer
+    //console.log(req.files,"the file contains")
     if (
       !req.files ||
       !Array.isArray(req.files.avatar) ||
@@ -91,8 +99,9 @@ const registorUser = asyncHandler(async (req, res) => {
       coverImage: coverImage?.url || "",
       email,
       password,
-      username: username.toLowerCase(),
+      username
     });
+    console.log(user,"the user is")
     // in select we add the feilds which we dont want by adding - sign
     const createdUser = await User.findById(user._id).select(
       "-password -refreshToken"
@@ -100,7 +109,7 @@ const registorUser = asyncHandler(async (req, res) => {
     if (!createdUser) {
       throw new ApiError(500, "something went wrong while registering");
     }
-    console.log(createdUser);
+   // console.log(createdUser);
     //const apiResponse = new ApiResponse(200, createdUser, "success");
     // console.log("ApiResponse:", apiResponse);
     return res
@@ -170,6 +179,22 @@ const loginUser = asyncHandler(async (req, res) => {
       )
     );
 });
+
+const checkAuth = asyncHandler(async (req, res) => {
+  if (!req.user) {
+    throw new ApiError(401, "User not authenticated");
+  }
+
+  return res
+    .status(200)
+    .json(
+      new ApiResponse(
+        200,
+        req.user,
+        "User is authenticated"
+      )
+    );
+});
 // User which comes from mongo db have method like find one but does not have access to our functions which we
 // by user
 const logoutUser = asyncHandler(async (req, res) => {
@@ -212,7 +237,7 @@ const refreshAccessToken = asyncHandler(async (req, res) => {
     console.log("value of decoded token", decodedToken);
     const user = await User.findById(decodedToken?._id);
     if (!user) {
-      new ApiError(401, "invalid refresh token");
+     throw new ApiError(401, "invalid refresh token");
     }
     if (incomingRefreshToken !== user.refreshToken) {
       throw new ApiError(401, "invalid refresh token or its is expired");
@@ -475,4 +500,5 @@ export {
   updateCoverImage,
   getUserChannelProfile,
   getWatchHistory,
+  checkAuth
 };

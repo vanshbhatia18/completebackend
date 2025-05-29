@@ -1,10 +1,14 @@
 import mongoose from "mongoose";
-import { DB_NAME } from "../constants.js";
 
+
+import dotenv from "dotenv";
+
+dotenv.config();
 const connectDB = async () => {
   try {
+    
     const connectionInstance = await mongoose.connect(
-      `${process.env.MONGO_DB_URI}/${DB_NAME}`
+      `${process.env.MONGO_DB_URI}`
     );
     console.log(
       `data base is connected at ${connectionInstance.connection.host}`
