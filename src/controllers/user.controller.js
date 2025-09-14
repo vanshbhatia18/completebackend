@@ -32,22 +32,22 @@ const registorUser = asyncHandler(async (req, res) => {
   // check user is created properly
   // return response
   try {
-    const { fullName, email, password, username } = req.body;
-console.log(username,"username is this")
-    /*
-  if (fullName === "") {
-    return ApiError(400, "full name is required");
-  } */
-  const feilds = {fullName, email, password, username}
- 
+    const { fullName, username,email,password} = req.body;
+console.log(req.body,"username is this")
+    
+
+
+
+  const feilds = {fullName, username,email,password}
+ /*
   for(const [key,value] of Object.entries(feilds)) {
     if (!value?.trim()) {
       throw new ApiError(400, `${key} is required`); }
   }   
 
     if (
-      [fullName, email, password, username].some(
-        (feild) => feild?.trim() === ""
+      [fullName, username,email,password].some(
+        (feild) => !feild||feild?.trim() === ""
       )
     ) {
       throw new ApiError(400, "full name is required");
@@ -59,47 +59,14 @@ console.log(username,"username is this")
     if (existedUser) {
       throw new ApiError(409, "user with email and email already exist");
     }
-    //console.log(req.files.avatar[0]);
-
-    // req.files by multer
-    //console.log(req.files,"the file contains")
-    if (
-      !req.files ||
-      !Array.isArray(req.files.avatar) ||
-      req.files.avatar.length === 0
-    ) {
-      throw new ApiError(400, "Avatar is required");
-    }
-    const avatarLocalPath = req.files?.avatar[0]?.path;
-    // const coverImagePath = req.files?.coverImage[0]?.path;
-    let coverImagePath;
-
-    if (
-      req.files &&
-      Array.isArray(req.files.coverImage) &&
-      req.files.coverImage.length > 0
-    ) {
-      coverImagePath = req.files.coverImage[0]?.path;
-    }
-
-    if (!avatarLocalPath) {
-      throw new ApiError(400, "avatar is needed");
-    }
-    const avatar = await cloudinaryUpload(avatarLocalPath);
-    const coverImage = await cloudinaryUpload(coverImagePath);
-
-    if (!avatar) {
-      throw new ApiError(400, "avatar is required");
-    }
+    */
 
     const user = await User.create({
       fullName,
-      avatar: avatar.url,
-      avatarPublicId: avatar.public_id,
-      coverImage: coverImage?.url || "",
-      email,
+      username,
+       email,
       password,
-      username
+      
     });
     console.log(user,"the user is")
     // in select we add the feilds which we dont want by adding - sign

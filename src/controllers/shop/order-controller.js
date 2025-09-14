@@ -1,126 +1,58 @@
-import razorpay from "../../helpers/razorpay";
+const Order = require("../models/Order");
 import { asyncHandler } from "../../utils/asyncHandler";
-import Order from "../../models/Order";
-import Cart from "../../models/Cart";
-import Product from "../../models/Product";
-import { ApiResponse } from "../../utils/ApiResponse";
-import { ApiError } from "../../utils/ApiError";
-
-// Create Razorpay Order and Save in DB
-export const createOrder = asyncHandler(async (req, res) => {
-  const {
-    userId,
-    cartItems,
-    addressInfo,
-    orderStatus,
-    paymentMethod,
-    paymentStatus,
-    totalAmount,
-    orderDate,
-    orderUpdateDate,
-    cartId,
-  } = req.body;
-
-  if (
-    !userId || !cartItems || !addressInfo || !paymentMethod ||
-    !paymentStatus || !totalAmount || !orderDate || !orderUpdateDate || !cartId
-  ) {
-    throw new ApiError(400, "All fields are required to create an order");
-  }
-
-  const amountPaisa = totalAmount * 100;
-  const receipt = `receipt_${Date.now()}`;
-
-  const razorpayOrder = await razorpay.orders.create({
-    amount: amountPaisa,
-    currency: "INR",
-    receipt,
-    payment_capture: 0,
-    notes: {
-      userId: userId,
-      customNote: "Ecommerce Order",
-    },
-  });
-
-  const newOrder = new Order({
-    userId,
-    cartId,
-    cartItems,
-    addressInfo,
-    orderStatus,
-    paymentMethod,
-    paymentStatus,
-    totalAmount,
-    orderDate,
-    orderUpdateDate,
-    razorpayOrderId: razorpayOrder.id,
-  });
-
-  await newOrder.save();
-
-  return res.status(200).json(
-    new ApiResponse(200, {
-      success: true,
-      razorpayOrderId: razorpayOrder.id,
-      amount: razorpayOrder.amount,
-      currency: razorpayOrder.currency,
-      orderId: newOrder._id,
-    }, "Order successfully created")
-  );
-});
-
-
-// Capture Razorpay Payment and Finalize Order
-export const capture = asyncHandler(async (req, res) => {
-  const { requestPaymentId, orderId } = req.body;
-
-  if (!requestPaymentId || !orderId) {
-    throw new ApiError(400, "Payment ID and Order ID are required");
-  }
-
-  const order = await Order.findById(orderId);
-  if (!order) {
-    throw new ApiError(404, "Order not found");
-  }
-
-  const amount = order.totalAmount * 100;
-
+export const createOrder=  asyncHandler(async(req,res)=>{
   try {
-    const captureResponse = await razorpay.payments.capture(requestPaymentId, amount, "INR");
+      const created=new Order(req.body)
+      await created.save()
+      res.status(201).json(created)
+  } catch (error) {
+      console.log(error);
+      return res.status(500).json({message:'Error creating an order, please trying again later'})
+  }
+}) 
 
-    order.paymentStatus = "paid";
-    order.orderStatus = "confirmed";
-    order.razorpayPaymentId = requestPaymentId;
+export const getByUserId=  asyncHandler(async(req,res)=>{
+  try {
+      const {id}=req.params
+      const results=await Order.find({user:id})
+      res.status(200).json(results)
+  } catch (error) {
+      console.log(error);
+      return res.status(500).json({message:'Error fetching orders, please trying again later'})
+  }
+}) 
 
-    // Update Product Stock
-    for (const item of order.cartItems) {
-      const product = await Product.findById(item.productId);
-      if (!product) {
-        return res.status(404).json({
-          success: false,
-          message: `Product not found: ${item.title}`,
-        });
+export const getAllOrders = asyncHandler( async (req, res) => {
+  try {
+      let skip=0
+      let limit=0
+
+      if(req.query.page && req.query.limit){
+          const pageSize=req.query.limit
+          const page=req.query.page
+          skip=pageSize*(page-1)
+          limit=pageSize
       }
 
-      product.totalStock -= item.quantity;
-      await product.save();
-    }
+      const totalDocs=await Order.find({}).countDocuments().exec()
+      const results=await Order.find({}).skip(skip).limit(limit).exec()
 
-    // Delete user's cart after successful order
-    await Cart.findByIdAndDelete(order.cartId);
-    await order.save();
+      res.header("X-Total-Count",totalDocs)
+      res.status(200).json(results)
 
-    return res.status(200).json(
-      new ApiResponse(200, {
-        success: true,
-        message: "Payment captured and order confirmed",
-        order,
-        captureResponse,
-      }, "Payment captured")
-    );
   } catch (error) {
-    console.error("Razorpay capture error:", error);
-    throw new ApiError(500, "Payment capture failed");
+      console.log(error);
+      res.status(500).json({message:'Error fetching orders, please try again later'})
   }
-});
-       export {createOrder}
+}
+)
+export const updateById=  asyncHandler(async(req,res)=>{
+  try {
+      const {id}=req.params
+      const updated=await Order.findByIdAndUpdate(id,req.body,{new:true})
+      res.status(200).json(updated)
+  } catch (error) {
+      console.log(error);
+      res.status(500).json({message:'Error updating order, please try again later'})
+  }
+})

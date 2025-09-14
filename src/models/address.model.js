@@ -1,16 +1,42 @@
 import mongoose, { Schema } from "mongoose";
 
-const AddressSchema = new Schema({
-  userId: String,
-  address: String,
-  city: String,
-  pincode: String,
-  phone: String,
-  notes: String,
-},
-{ timestamps: true }
+const addressSchema = new Schema({
+  user:{
+    type:Schema.Types.ObjectId,
+    ref:"User",
+    required:true
+  },
+  street: {
+    type: String,
+    required: true,
+  },
+  city: {
+    type: String,
+    required: true,
+  },
+  state: {
+    type: String,
+    required: true,
+  },
+  phoneNumber:{
+    type:String,
+    required:true,
+  },
+  postalCode: {
+    type: String,
+    required: true,
+  },
+  country: {
+    type: String,
+    required: true,
+  },
+  type: {
+    type: String,
+    required: true,
+  },
+}
 )
 
 
 
-export const Address = mongoose.model("Address",AddressSchema)
+export const Address = mongoose.model("Address",addressSchema)

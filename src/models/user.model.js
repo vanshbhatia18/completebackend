@@ -26,11 +26,11 @@ const userSchema = new Schema(
     },
     avatar: {
       type: String, // cloudinary url
-      required: true,
+    
     },
     avatarPublicId: {
       type: String,
-      required: true,
+    
     },
     coverImage: {
       type: String, // cloudinary url
@@ -48,6 +48,10 @@ const userSchema = new Schema(
     refreshToken: {
       type: String,
     },
+    isAdmin:{
+      type:Boolean,
+      default :false
+    }
   },
   {
     timestamps: true,

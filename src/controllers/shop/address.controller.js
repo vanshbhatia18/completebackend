@@ -6,123 +6,50 @@ import { asyncHandler } from "../../utils/asyncHandler";
 
 
 export const addAddress = asyncHandler(async(req,res)=> {
-  const {userId,address,city,pincode,number,notes} = req.body;
-
-  const val = [userId,address,city,pincode,number,notes];
-
-  if(val.some((val)=> {
-    val?.trim() ===""
-  }) ){
-    throw ApiError(404,"full data is missing")
-  }
-
-
-  const addressM = await  new Address({
-    userId,
-    address,
-    city,
-    pincode,
-    number,
-    notes
-  })
-  await addressM.save()
-
-  res.status(200).json(200,new ApiResponse(200,addressM,"Address added successfully"))
+  try {
+    const created=new Address(req.body)
+    await created.save()
+    res.status(201).json(created)
+} catch (error) {
+    console.log(error);
+    return res.status(500).json({message:'Error adding address, please trying again later'})
+}
 })
-export const fetchAllAddress = async (req, res) => {
+
+
+
+
+export const getByUserId = asyncHandler(async (req, res) => {
   try {
-    const { userId } = req.params;
-    if (!userId) {
-      return res.status(400).json({
-        success: false,
-        message: "User id is required!",
-      });
-    }
-
-    const addressList = await Address.find({ userId });
-
-    res.status(200).json({
-      success: true,
-      data: addressList,
-    });
-  } catch (e) {
-    console.log(e);
-    res.status(500).json({
-      success: false,
-      message: "Error",
-    });
+      const {id}=req.params
+      const results=await Address.find({user:id})
+      res.status(200).json(results)
+  
+  } catch (error) {
+      console.log(error);
+      res.status(500).json({message:'Error fetching addresses, please try again later'})
   }
-};
+})
 
-export const editAddress = async (req, res) => {
+export const updateById= asyncHandler(async(req,res)=>{
   try {
-    const { userId, addressId } = req.params;
-    const formData = req.body;
-
-    if (!userId || !addressId) {
-      return res.status(400).json({
-        success: false,
-        message: "User and address id is required!",
-      });
-    }
-
-    const address = await Address.findOneAndUpdate(
-      {
-        _id: addressId,
-        userId,
-      },
-      formData,
-      { new: true }
-    );
-
-    if (!address) {
-      return res.status(404).json({
-        success: false,
-        message: "Address not found",
-      });
-    }
-
-    res.status(200).json({
-      success: true,
-      data: address,
-    });
-  } catch (e) {
-    console.log(e);
-    res.status(500).json({
-      success: false,
-      message: "Error",
-    });
+      const {id}=req.params
+      const updated=await Address.findByIdAndUpdate(id,req.body,{new:true})
+      console.log(updated);
+      res.status(200).json(updated)
+  } catch (error) {
+      console.log(error);
+      res.status(500).json({message:'Error updating address, please try again later'})
   }
-};
+})
 
-export const deleteAddress = async (req, res) => {
+export const deleteById=  asyncHandler(async(req,res)=>{
   try {
-    const { userId, addressId } = req.params;
-    if (!userId || !addressId) {
-      return res.status(400).json({
-        success: false,
-        message: "User and address id is required!",
-      });
-    }
-
-    const address = await Address.findOneAndDelete({ _id: addressId, userId });
-
-    if (!address) {
-      return res.status(404).json({
-        success: false,
-        message: "Address not found",
-      });
-    }
-
-    res.status(200).json({
-      success: true,
-      message: "Address deleted successfully",
-    });
-  } catch (e) {
-    console.log(e);
-    res.status(500).json({
-      success: false,
-      message: "Error",
-    });
+      const {id}=req.params
+      const deleted=await Address.findByIdAndDelete(id)
+      res.status(200).json(deleted)
+  } catch (error) {
+      console.log(error);
+      res.status(500).json({message:'Error deleting address, please try again later'})
   }
-};
+}) 

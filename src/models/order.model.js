@@ -1,34 +1,37 @@
-import mongoose from "mongoose";
+import mongoose, { Schema } from "mongoose";
 
-const OrderSchema = new Schema({
-  userId: String,
-  cartId: String,
-  cartItems: [
-    {
-      productId: String,
-      title: String,
-      image: String,
-      price: String,
-      quantity: Number,
+const orderSchema=new Schema({
+    user:{
+        type:Schema.Types.ObjectId,
+        ref:"User",
+        required:true
     },
-  ],
-  addressInfo: {
-    addressId: String,
-    address: String,
-    city: String,
-    pincode: String,
-    phone: String,
-    notes: String,
-  },
-  orderStatus: String,
-  paymentMethod: String,
-  paymentStatus: String,
-  totalAmount: Number,
-  orderDate: Date,
-  orderUpdateDate: Date,
-  paymentId: String,
-  payerId: String,
-  razorpayOrderId:String
-});
+    item:{
+        type:[Schema.Types.Mixed],
+        required:true
+    },
+    address:{
+        type:[Schema.Types.Mixed],
+        required:true
+    },
+    status:{
+        type:String,
+        enum:['Pending','Dispatched','Out for delivery','Cancelled'],
+        default:'Pending'
+    },
+    paymentMode:{
+        type:String,
+        enum:['COD','UPI','CARD'],
+        required:true
+    },
+    total:{
+        type:Number,
+        required:true
+    },
+    createdAt:{
+        type:Date,
+        default:Date.now
+    },
+},{versionKey:false})
 
-export const Order= mongoose.model("Order", OrderSchema);
+export const Order=mongoose.model("Order",orderSchema)
