@@ -15,30 +15,4 @@ connectDB()
   .catch((error) => {
     console.log("Mongo_Db connection failed", error);
   });
-/*
-(async () => {
-  try {
-    await new Promise((resolve, reject) => {
-      mongoose
-        .connect(`${process.env.MONGO_DB_URI}/${DB_NAME}`)
-        .then(() => {
-          console.log("database connected");
 
-          app.on("error", (error) => {
-            console.log("ERR", error);
-            throw error;
-          });
-          app.listen(process.env.PORT, () => {
-            console.log(`Listning on th port ${process.env.PORT}`);
-          });
-          resolve();
-        })
-        .catch((e) => {
-          reject(e);
-        });
-    });
-  } catch (e) {
-    console.log(e);
-  }
-})();
-*/

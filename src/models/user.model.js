@@ -18,12 +18,7 @@ const userSchema = new Schema(
       lowecase: true,
       trim: true,
     },
-    fullName: {
-      type: String,
-      required: true,
-      trim: true,
-      index: true,
-    },
+    
     avatar: {
       type: String, // cloudinary url
     
@@ -75,7 +70,7 @@ userSchema.methods.generateAccessToken = function () {
       _id: this._id,
       email: this.email,
       username: this.username,
-      fullName: this.fullName,
+      
     },
     process.env.ACCESS_TOKEN_SECRET,
     {

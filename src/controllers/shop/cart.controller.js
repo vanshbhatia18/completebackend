@@ -1,164 +1,234 @@
-import { Cart } from "../../models/cart.model";
-import { Product } from "../../models/product.model";
-import { asyncHandler } from "../../utils/asyncHandler";
-import { ApiResponse } from "../../utils/ApiResponse";
-import { ApiError } from "../../utils/ApiError";
+import { Cart } from "../../models/cart.model.js";
+import { Product } from "../../models/product.model.js";
+import mongoose from "mongoose";
 
+export const addToCart = async (req, res) => {
+  try {
+    const { userId, productId, quantity } = req.body;
+  console.log(userId,"the userId is")
+    if (!userId || !productId || quantity <= 0) {
+      return res.status(400).json({
+        success: false,
+        message: "Invalid data provided!",
+      });
+    }
 
-// Add to Cart
-export const addToCart = asyncHandler(async (req, res) => {
-  const { userId, productId, quantity } = req.body;
+    const product = await Product.findById(productId);
 
-  if (!userId || !productId || quantity <= 0) {
-    return res.status(400).json(new ApiResponse(400, null, "Invalid input data"));
-  }
+    if (!product) {
+      return res.status(404).json({
+        success: false,
+        message: "Product not found",
+      });
+    }
+   
+    let cart = await Cart.findOne({ userId});
 
-  const product = await Product.findById(productId);
-  if (!product) {
-    return res.status(404).json(new ApiResponse(404, null, "Product not found"));
-  }
+    if (!cart) {
+      cart = new Cart({ userId, items: [] });
+    }
 
-  let cart = await Cart.findOne({ userId });
-  if (!cart) {
-    cart = new Cart({ userId, items: [] });
-  }
+    const findCurrentProductIndex = cart.items.findIndex(
+      (item) => item.productId.toString() === productId
+    );
 
-  const index = cart.items.findIndex(item => item.productId.toString() === productId);
+    if (findCurrentProductIndex === -1) {
+      cart.items.push({ productId, quantity });
+    } else {
+      cart.items[findCurrentProductIndex].quantity += quantity;
+    }
 
-  if (index !== -1) {
-    cart.items[index].quantity += quantity;
-  } else {
-    cart.items.push({ productId, quantity });
-  }
-
-  await cart.save();
-
-  return res.status(200).json(new ApiResponse(200, cart, "Item has been added to the cart"));
-});
-
-
-// Fetch Cart Items
-export const fetchCartItems = asyncHandler(async (req, res) => {
-  const { userId } = req.params;
-
-  if (!userId) {
-    throw new ApiError(400, "User ID is required");
-  }
-
-  const cart = await Cart.findOne({ userId }).populate({
-    path: "items.productId",
-    select: "image title description price salePrice"
-  });
-
-  if (!cart) {
-    throw new ApiError(404, "Cart not found");
-  }
-
-  const validItems = cart.items.filter(item => item.productId);
-
-  if (validItems.length < cart.items.length) {
-    cart.items = validItems;
     await cart.save();
+    console.log(cart,"cart looks like")
+    res.status(200).json({
+      success: true,
+      data: cart,
+    });
+    
+  } catch (error) {
+    console.log(error);
+    res.status(500).json({
+      success: false,
+      message: "Error",
+    });
   }
+};
 
-  const productItemCart = validItems.map(item => ({
-    productId: item.productId._id,
-    image: item.productId.image,
-    title: item.productId.title,
-    description: item.productId.description,
-    price: item.productId.price,
-    salePrice: item.productId.salePrice,
-    quantity: item.quantity
-  }));
+export const fetchCartItems = async (req, res) => {
+  try {
+    const { userId } = req.params;
 
-  return res.status(200).json(new ApiResponse(200, {
-    ...cart._doc,
-    items: productItemCart
-  }, "Cart items fetched successfully"));
-});
+    if (!userId) {
+      return res.status(400).json({
+        success: false,
+        message: "User id is manadatory!",
+      });
+    }
 
+    const cart = await Cart.findOne({ userId }).populate({
+      path: "items.productId",
+      select: "image title price salePrice",
+    });
+    console.log(cart.items[0].productId,"the cart looks like after populate")
+    if (!cart) {
+      return res.status(404).json({
+        success: false,
+        message: "Cart not found!",
+      });
+    }
 
-// Update Quantity in Cart
-export const updateCartQty = asyncHandler(async (req, res) => {
-  const { userId, productId, quantity } = req.body;
+    const validItems = cart.items.filter(
+      (productItem) => productItem.productId
+    );
 
-  if (!userId || !productId || quantity <= 0) {
-    return res.status(400).json(new ApiResponse(400, null, "Invalid input data"));
+    if (validItems.length < cart.items.length) {
+      cart.items = validItems;
+      await cart.save();
+    }
+
+    const populateCartItems = validItems.map((item) => ({
+      productId: item.productId._id,
+      image: item.productId.image,
+      title: item.productId.title,
+      price: item.productId.price,
+      salePrice: item.productId.salePrice,
+      quantity: item.quantity,
+    }));
+
+    res.status(200).json({
+      success: true,
+      data: {
+        ...cart._doc,
+        items: populateCartItems,
+      },
+    });
+  } catch (error) {
+    console.log(error);
+    res.status(500).json({
+      success: false,
+      message: "Error",
+    });
   }
+};
 
-  const cart = await Cart.findOne({ userId });
-  if (!cart) {
-    throw new ApiError(404, "Cart not found");
+export const updateCartItemQty = async (req, res) => {
+  try {
+    const { userId, productId, quantity } = req.body;
+
+    if (!userId || !productId || quantity <= 0) {
+      return res.status(400).json({
+        success: false,
+        message: "Invalid data provided!",
+      });
+    }
+
+    const cart = await Cart.findOne({ userId });
+    if (!cart) {
+      return res.status(404).json({
+        success: false,
+        message: "Cart not found!",
+      });
+    }
+
+    const findCurrentProductIndex = cart.items.findIndex(
+      (item) => item.productId.toString() === productId
+    );
+
+    if (findCurrentProductIndex === -1) {
+      return res.status(404).json({
+        success: false,
+        message: "Cart item not present !",
+      });
+    }
+
+    cart.items[findCurrentProductIndex].quantity = quantity;
+    await cart.save();
+
+    await cart.populate({
+      path: "items.productId",
+      select: "image title price salePrice",
+    });
+
+    const populateCartItems = cart.items.map((item) => ({
+      productId: item.productId ? item.productId._id : null,
+      image: item.productId ? item.productId.image : null,
+      title: item.productId ? item.productId.title : "Product not found",
+      price: item.productId ? item.productId.price : null,
+      salePrice: item.productId ? item.productId.salePrice : null,
+      quantity: item.quantity,
+    }));
+
+    res.status(200).json({
+      success: true,
+      data: {
+        ...cart._doc,
+        items: populateCartItems,
+      },
+    });
+  } catch (error) {
+    console.log(error);
+    res.status(500).json({
+      success: false,
+      message: "Error",
+    });
   }
+};
 
-  const index = cart.items.findIndex(item => item.productId.toString() === productId);
+export const deleteCartItem = async (req, res) => {
+  try {
+    const { userId, productId } = req.params;
+    if (!userId || !productId) {
+      return res.status(400).json({
+        success: false,
+        message: "Invalid data provided!",
+      });
+    }
 
-  if (index === -1) {
-    throw new ApiError(404, "Product not found in cart");
+    const cart = await Cart.findOne({ userId }).populate({
+      path: "items.productId",
+      select: "image title price salePrice",
+    });
+
+    if (!cart) {
+      return res.status(404).json({
+        success: false,
+        message: "Cart not found!",
+      });
+    }
+
+    cart.items = cart.items.filter(
+      (item) => item.productId._id.toString() !== productId
+    );
+
+    await cart.save();
+
+    await cart.populate({
+      path: "items.productId",
+      select: "image title price salePrice",
+    });
+
+    const populateCartItems = cart.items.map((item) => ({
+      productId: item.productId ? item.productId._id : null,
+      image: item.productId ? item.productId.image : null,
+      title: item.productId ? item.productId.title : "Product not found",
+      price: item.productId ? item.productId.price : null,
+      salePrice: item.productId ? item.productId.salePrice : null,
+      quantity: item.quantity,
+    }));
+
+    res.status(200).json({
+      success: true,
+      data: {
+        ...cart._doc,
+        items: populateCartItems,
+      },
+    });
+  } catch (error) {
+    console.log(error);
+    res.status(500).json({
+      success: false,
+      message: "Error",
+    });
   }
+};
 
-  cart.items[index].quantity = quantity;
-  await cart.save();
-
-  await cart.populate({
-    path: "items.productId",
-    select: "image title description price salePrice"
-  });
-
-  const updatedItems = cart.items.map(item => ({
-    productId: item.productId ? item.productId._id : null,
-    image: item.productId?.image || null,
-    title: item.productId?.title || "Product not found",
-    description: item.productId?.description || null,
-    price: item.productId?.price || null,
-    salePrice: item.productId?.salePrice || null,
-    quantity: item.quantity
-  }));
-
-  return res.status(200).json(new ApiResponse(200, {
-    ...cart._doc,
-    items: updatedItems
-  }, "Cart item quantity updated"));
-});
-
-
-// Delete Cart Item
-export const deleteCartItem = asyncHandler(async (req, res) => {
-  const { userId, productId } = req.body;
-
-  if (!userId || !productId) {
-    throw new ApiError(400, "User ID and Product ID are required");
-  }
-
-  const cart = await Cart.findOne({ userId });
-  if (!cart) {
-    throw new ApiError(404, "Cart not found");
-  }
-
-  const newItems = cart.items.filter(item => item.productId.toString() !== productId);
-  cart.items = newItems;
-  await cart.save();
-
-  await cart.populate({
-    path: "items.productId",
-    select: "image title description price salePrice"
-  });
-
-  const getItems = cart.items.map(item => ({
-    productId: item.productId?._id || null,
-    image: item.productId?.image || null,
-    title: item.productId?.title || "Product not found",
-    description: item.productId?.description || null,
-    price: item.productId?.price || null,
-    salePrice: item.productId?.salePrice || null,
-    quantity: item.quantity
-  }));
-
-  return res.status(200).json(new ApiResponse(200, {
-    ...cart._doc,
-    items: getItems
-  }, "Cart item deleted"));
-});
-   export {
-    addToCart,fetchCartItems,updateCartQty,deleteCartItem
-   }

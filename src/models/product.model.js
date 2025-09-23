@@ -13,36 +13,32 @@ price:{
     type:Number,
     required:true
 },
-discountPercentage: {
+salePrice: {
     type: Number,
     default: 0,
 },
 category:{
-    type:Schema.Types.ObjectId,
-    ref:"Category",
+    type : String,
+    
     required:true
 },
 brand:{
-    type:Schema.Types.ObjectId,
-    ref:"Brand",
-    required:true
+type: String,
+required: true
 },
-stockQuantity:{
+totalStock:{
     type:Number,
     required:true
 },
-thumbnail:{
+
+image:{
     type:String,
     required:true
 },
-images:{
-    type:[String],
-    required:true
-},
-isDeleted:{
-    type:Boolean,
-    default:false
-} },{timestamps:true,versionKey:false}
+   averageReview : {
+   type : Number
+   }
+},{timestamps:true,versionKey:false}
 );
 
 export const Product =mongoose.model("Product", productSchema);

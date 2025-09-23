@@ -5,6 +5,9 @@ import { cloudinaryUpload, cloudinaryDeleteFile } from "../utils/cloudinary.js";
 import { ApiResponse } from "../utils/ApiResponse.js";
 import jwt from "jsonwebtoken";
 import mongoose from "mongoose";
+import dotenv from "dotenv";
+
+dotenv.config();
 
 const generateAccessandAccessToken = async (userId) => {
   try {
@@ -22,53 +25,32 @@ const generateAccessandAccessToken = async (userId) => {
   }
 };
 const registorUser = asyncHandler(async (req, res) => {
-  // check user detail from frontend
-  // validations
-  // if user already exist : username , email
-  // check images , check avatar
-  // upload on cloudunary, avatar get or not
-  // create a user object - entery in database
-  // remove passsword and refreshtoken from response
-  // check user is created properly
-  // return response
+
   try {
-    const { fullName, username,email,password} = req.body;
-console.log(req.body,"username is this")
+    const {  username,email,password} = req.body;
+//console.log(req.body,"username is this")
     
 
 
 
-  const feilds = {fullName, username,email,password}
- /*
-  for(const [key,value] of Object.entries(feilds)) {
-    if (!value?.trim()) {
-      throw new ApiError(400, `${key} is required`); }
-  }   
 
-    if (
-      [fullName, username,email,password].some(
-        (feild) => !feild||feild?.trim() === ""
-      )
-    ) {
-      throw new ApiError(400, "full name is required");
-    }
-    console.log(email,"email is")
-    const existedUser = await User.findOne({
-      $or: [{ email }, { username }],
-    });
-    if (existedUser) {
-      throw new ApiError(409, "user with email and email already exist");
-    }
-    */
+   const isempty=  [username,email,password].some((val)=> {
+        return val.trim()==="";
+     })
+     if(isempty) {
+    //  console.log("values are empty")
+    throw new ApiError(402, "all feild id needed");
+     }
+
 
     const user = await User.create({
-      fullName,
+      
       username,
        email,
       password,
       
     });
-    console.log(user,"the user is")
+   // console.log(user,"the user is")
     // in select we add the feilds which we dont want by adding - sign
     const createdUser = await User.findById(user._id).select(
       "-password -refreshToken"
@@ -76,9 +58,7 @@ console.log(req.body,"username is this")
     if (!createdUser) {
       throw new ApiError(500, "something went wrong while registering");
     }
-   // console.log(createdUser);
-    //const apiResponse = new ApiResponse(200, createdUser, "success");
-    // console.log("ApiResponse:", apiResponse);
+
     return res
       .status(200)
       .json(new ApiResponse(200, createdUser, "user successfully registered"));
@@ -91,10 +71,7 @@ console.log(req.body,"username is this")
     return res.status(500).json({ message: "Internal Server Error" });
   }
 });
-// email , then check  email does exist , username , same for that
-// check password is correct
-// valid access and refresh token
-// send through cookies
+
 const loginUser = asyncHandler(async (req, res) => {
   const { email, username, password } = req.body;
 
@@ -117,6 +94,7 @@ const loginUser = asyncHandler(async (req, res) => {
   if (!isPasswordValid) {
     throw new ApiError(401, "password is not correct");
   }
+ // console.log("the userId is",user._id);
   const { accessToken, refreshToken } = await generateAccessandAccessToken(
     user._id
   );
@@ -137,31 +115,15 @@ const loginUser = asyncHandler(async (req, res) => {
     .json(
       new ApiResponse(
         200,
-        {
-          user: refreshToken,
-          accessToken,
-          logedInUser,
-        },
+        
+          
+          logedInUser
+        ,
         "user logged in successfully"
       )
     );
 });
 
-const checkAuth = asyncHandler(async (req, res) => {
-  if (!req.user) {
-    throw new ApiError(401, "User not authenticated");
-  }
-
-  return res
-    .status(200)
-    .json(
-      new ApiResponse(
-        200,
-        req.user,
-        "User is authenticated"
-      )
-    );
-});
 // User which comes from mongo db have method like find one but does not have access to our functions which we
 // by user
 const logoutUser = asyncHandler(async (req, res) => {
@@ -192,7 +154,7 @@ const refreshAccessToken = asyncHandler(async (req, res) => {
   try {
     const incomingRefreshToken =
       req.cookies.refreshToken || req.body.refreshToken;
-    console.log("incoming cookie", incomingRefreshToken);
+    //console.log("incoming cookie", incomingRefreshToken);
     if (!incomingRefreshToken) {
       new ApiError(401, "unAuthorized request");
     }
@@ -201,7 +163,7 @@ const refreshAccessToken = asyncHandler(async (req, res) => {
       incomingRefreshToken,
       process.env.REFRESH_TOKEN_SECRET
     );
-    console.log("value of decoded token", decodedToken);
+  //  console.log("value of decoded token", decodedToken);
     const user = await User.findById(decodedToken?._id);
     if (!user) {
      throw new ApiError(401, "invalid refresh token");
@@ -370,7 +332,7 @@ const getUserChannelProfile = asyncHandler(async (req, res) => {
           $size: "$subscribers",
         },
         channelSunscriptionToCount: {
-          $size: "subscribedTo",
+          $size: "$subscribedTo",
         },
         isSubscribedTo: {
           $cond: {
@@ -455,6 +417,37 @@ const getWatchHistory = asyncHandler(async (req, res) => {
       )
     );
 });
+
+
+ const checkAuth = asyncHandler(async(req,res)=> {
+  try {
+
+
+    const token =
+      req.cookies?.accessToken ||
+      req.header("Authorization")?.replace("Bearer ", "");
+
+    // 2. Verify token
+    const decoded = jwt.verify(token, process.env.ACCESS_TOKEN_SECRET);
+
+    // 3. Get user details (optional: remove password field)
+    const user = await User.findById(decoded._id).select("-password,-refreshToken");
+
+    if (!user) {
+      return res.status(401).json({ success: false, message: "User not found" });
+    }
+
+    // 4. Return user data
+    return res.status(200).json({
+      success: true,
+      logedInUser: user, 
+      message:"authentication is successsfull"
+    });
+  } catch (error) {
+    console.error("Check auth error:", error.message);
+    return res.status(401).json({ success: false, message: "Invalid token" });
+  }
+})
 export {
   registorUser,
   loginUser,
@@ -468,4 +461,5 @@ export {
   getUserChannelProfile,
   getWatchHistory,
   checkAuth
+  
 };

@@ -4,48 +4,39 @@ import { asyncHandler } from "../../utils/asyncHandler.js";
 import { ApiResponse } from "../../utils/ApiResponse.js";
 import { cloudinaryUpload } from "../../utils/cloudinary.js";
 // GET filtered and sorted products
+   export const uploadImage = asyncHandler(async (req,res)=> {
+    console.log(req.file, "the file conatin info");
+    
+        const value= await cloudinaryUpload(req.file?.path);
+        console.log(value,"the value is")
 
+        return res.status(200).json(new ApiResponse(200,{imageUrl:value.url},"image added successfully"))
+
+    
+   })
 export const createProduct = asyncHandler(async(req,res)=> {
   try {
 
-    const {title , price , description,stockQuantity,thumbnail,discountPercentage,category,brand} = req.body;
-    const obj= {title , price , description,stockQuantity,thumbnail,discountPercentage};
-   // console.log(req.f)
-   /*
-    for([key,value] of Object.entries(obj)) {
-       if(key!=)
-    }*/
-    console.log(req.files,"reqested files are")
-   if (!req.files || !Array.isArray(req.files?.images) ||req.files?.images.length==0) {
-     throw new ApiError(404,"not sended product Imaages");
-
-   }
-    let uploadedImages = [];
-    if(req.files?.images) {
-       const promises=  req.files.images.map((image)=> 
-        cloudinaryUpload(image.path))
-        uploadedImages = await Promise.all(promises)
-    }
-  
-      const images = uploadedImages.map((img)=> img.url);
+    const {title , price , description,salePrice, totalStock,averageReview,category,brand,image} = req.body;
+    
 
     const created=new Product({
         title :title,
         description:description,
         price:price,
-        discountPercentage:discountPercentage,
+        salePrice:salePrice,
         category:category,
         brand:brand,
-        stockQuantity:stockQuantity,
-        thumbnail:thumbnail,
-        images:images
+        totalStock:totalStock,
+        image:image,
+        averageReview:averageReview
 
     })
 
    
     await created.save()
-    console.log(created,"req.body gives us")
-    res.status(201).json(created)
+    
+    res.status(201).json({...created,message:"successfully added product",success:true})
 } catch (error) {
     console.log(error);
     return res.status(500).json({message:'Error adding product, please trying again later'})
@@ -59,27 +50,48 @@ export const createProduct = asyncHandler(async(req,res)=> {
 
 export const getTheFilterProduct = asyncHandler(async (req, res) => {
   try {
+
+
+   
     const filter={}
     const sort={}
     let skip=0
     let limit=0
 
     if(req.query.brand){
-        filter.brand={$in:req.query.brand}
+        filter.brand={$in:req.query.brand.split(",")}
     }
 
     if(req.query.category){
-        filter.category={$in:req.query.category}
+        filter.category={$in:req.query.category.split(",")}
     }
 
-    if(req.query.user){
-        filter['isDeleted']=false
-    }
+    
 
-    if(req.query.sort){
-        sort[req.query.sort]=req.query.order?req.query.order==='asc'?1:-1:1
-    }
-
+    
+    switch (req.query.sortBy) {
+        case "price-lowtohigh":
+          sort.price = 1;
+  
+          break;
+        case "price-hightolow":
+          sort.price = -1;
+  
+          break;
+        case "title-atoz":
+          sort.title = 1;
+  
+          break;
+  
+        case "title-ztoa":
+          sort.title = -1;
+  
+          break;
+  
+        default:
+          sort.price = 1;
+          break;
+      }
     if(req.query.page && req.query.limit){
 
         const pageSize=req.query.limit
@@ -89,12 +101,11 @@ export const getTheFilterProduct = asyncHandler(async (req, res) => {
         limit=pageSize
     }
 
-    const totalDocs=await Product.find(filter).sort(sort).populate("brand").countDocuments().exec()
-    const results=await Product.find(filter).sort(sort).populate("brand").skip(skip).limit(limit).exec()
+    const products = await Product.find(filter).sort(sort);
 
-    res.set("X-Total-Count",totalDocs)
 
-    res.status(200).json(new ApiResponse(200,results,"All the results has been fetched"))
+
+    res.status(200).json(new ApiResponse(200,products,"All the results has been fetched"))
 
 } catch (error) {
     console.log(error);
@@ -108,8 +119,9 @@ export const getProductDetails = asyncHandler(async (req, res) => {
 
   try {
     const {id}=req.params
-    const result=await Product.findById(id).populate("brand").populate("category")
-    res.status(200).json(result)
+    const result=await Product.findById(id);
+  
+    res.status(200).json(new ApiResponse(200,result," result has been fetched"))
 } catch (error) {
     console.log(error);
     res.status(500).json({message:'Error getting product details, please try again later'})
@@ -152,7 +164,9 @@ export const deleteById= asyncHandler(async(req,res)=>{
 
 export const getAllProducts= asyncHandler(async(req,res)=>{
     try {
+       
         const result=await Product.find({})
+      
         res.status(200).json(result)
     } catch (error) {
         console.log(error);

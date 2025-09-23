@@ -1,62 +1,84 @@
-const Review=require("../models/Review")
-import { asyncHandler } from "../../utils/asyncHandler";
+import {Order} from "../../models/order.model.js"
+import { Product } from "../../models/product.model.js";
 
-export const createReview= asyncHandler(async(req,res)=>{
+import { ProductReview } from "../../models/review.model.js";
+
+export const addProductReview = async (req, res) => {
   try {
-      console.log(req.body);
-      const created=await new Review(req.body).populate({path:'user',select:"-password"})
-      await created.save()
-      res.status(201).json(created)
-  } catch (error) {
-      console.log(error);
-      return res.status(500).json({message:'Error posting review, please trying again later'})
-  }
-}) 
+    const { productId, userId, userName, reviewMessage, reviewValue } =
+      req.body;
 
-export const getByProductId=  asyncHandler(async(req,res)=>{
+    const order = await Order.findOne({
+      userId,
+      "cartItems.productId": productId,
+      // orderStatus: "confirmed" || "delivered",
+    });
+
+    if (!order) {
+      return res.status(403).json({
+        success: false,
+        message: "You need to purchase product to review it.",
+      });
+    }
+
+    const checkExistinfReview = await ProductReview.findOne({
+      productId,
+      userId,
+    });
+
+    if (checkExistinfReview) {
+      return res.status(400).json({
+        success: false,
+        message: "You already reviewed this product!",
+      });
+    }
+
+    const newReview = new ProductReview({
+      productId,
+      userId,
+      userName,
+      reviewMessage,
+      reviewValue,
+    });
+
+    await newReview.save();
+
+    const reviews = await ProductReview.find({ productId });
+    const totalReviewsLength = reviews.length;
+    const averageReview =
+      reviews.reduce((sum, reviewItem) => sum + reviewItem.reviewValue, 0) /
+      totalReviewsLength;
+
+    await Product.findByIdAndUpdate(productId, { averageReview });
+
+    res.status(201).json({
+      success: true,
+      data: newReview,
+    });
+  } catch (e) {
+    console.log(e);
+    res.status(500).json({
+      success: false,
+      message: "Error",
+    });
+  }
+};
+
+export const getProductReviews = async (req, res) => {
   try {
-      const {id}=req.params
-      let skip=0
-      let limit=0
+    const { productId } = req.params;
 
-      if(req.query.page && req.query.limit){
-          const pageSize=req.query.limit
-          const page=req.query.page
-
-          skip=pageSize*(page-1)
-          limit=pageSize
-      }
-
-      const totalDocs=await Review.find({product:id}).countDocuments().exec()
-      const result=await Review.find({product:id}).skip(skip).limit(limit).populate('user').exec()
-
-      res.set("X-total-Count",totalDocs)
-      res.status(200).json(result)
-
-  } catch (error) {
-      console.log(error);
-      res.status(500).json({message:'Error getting reviews for this product, please try again later'})
+    const reviews = await ProductReview.find({ productId });
+    res.status(200).json({
+      success: true,
+      data: reviews,
+    });
+  } catch (e) {
+    console.log(e);
+    res.status(500).json({
+      success: false,
+      message: "Error",
+    });
   }
-}) 
+};
 
-export const updateById= asyncHandler(async(req,res)=>{
-  try {
-      const {id}=req.params
-      const updated=await Review.findByIdAndUpdate(id,req.body,{new:true}).populate('user')
-      res.status(200).json(updated)
-  } catch (error) {
-      console.log(error);
-      res.status(500).json({message:'Error updating review, please try again later'})
-  }
-}) 
-
-export const deleteById=  asyncHandler(async(req,res)=>{
-  try {
-      const {id}=req.params
-      const deleted=await Review.findByIdAndDelete(id)
-      res.status(200).json(deleted)
-  } catch (error) {
-      console.log(error);
-      res.status(500).json({message:'Error deleting review, please try again later'})
-  }
-})  

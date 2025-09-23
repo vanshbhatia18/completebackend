@@ -23,7 +23,7 @@ router.route("/register").post(
 );
 
 router.route("/login").post(loginUser);
-router.route("/check-auth").get(jwtVerify, checkAuth) ;
+router.route("/check-auth").get(checkAuth)
 router.route("/logout").post(jwtVerify, logoutUser);
 router.route("/refresh-token").post(refreshAccessToken);
 router.route("/change-password").post(jwtVerify, changecurrentPassword);
