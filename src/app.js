@@ -4,12 +4,13 @@ import cookieParser from "cookie-parser";
 
 const app = express();
 
+
 app.use(
   cors({
-    origin: process.env.CORS_ORIGIN,
-    credentials: true,
+    origin: process.env.CORS_ORIGIN, credentials: true,
   })
 );
+
 app.use(express.urlencoded({ extended: true, limit: "16kb" }));
 app.use(express.json({ limit: "16kb" }));
 app.use(express.static("public"));
@@ -26,7 +27,7 @@ app.use((req, res, next) => {
 });
 */
 import userRouter from "./routes/user.routes.js";
-import videoRouter from "./routes/video.routes.js";
+
 
 import productRouter from "./routes/shop/product.routes.js"
 import searchRouter from "./routes/shop/search.routes.js"
@@ -36,7 +37,7 @@ import addressRouter from "./routes/shop/address.routes.js"
 import reviewRouter from "./routes/shop/review.routes.js"
 import orderRouter from "./routes/shop/order.routes.js"
 
-app.use("/api/v1/videos", videoRouter);
+
 app.use("/api/v1/users", userRouter);
 app.use("/api/v1/products", productRouter);
 app.use("/api/v1/search",searchRouter);

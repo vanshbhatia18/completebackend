@@ -5,7 +5,7 @@ import mongoose from "mongoose";
 export const addToCart = async (req, res) => {
   try {
     const { userId, productId, quantity } = req.body;
-  console.log(userId,"the userId is")
+  
     if (!userId || !productId || quantity <= 0) {
       return res.status(400).json({
         success: false,
@@ -39,7 +39,7 @@ export const addToCart = async (req, res) => {
     }
 
     await cart.save();
-    console.log(cart,"cart looks like")
+   
     res.status(200).json({
       success: true,
       data: cart,
@@ -69,7 +69,7 @@ export const fetchCartItems = async (req, res) => {
       path: "items.productId",
       select: "image title price salePrice",
     });
-    console.log(cart.items[0].productId,"the cart looks like after populate")
+    
     if (!cart) {
       return res.status(404).json({
         success: false,

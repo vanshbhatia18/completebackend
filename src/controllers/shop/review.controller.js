@@ -5,9 +5,10 @@ import { ProductReview } from "../../models/review.model.js";
 
 export const addProductReview = async (req, res) => {
   try {
+    
     const { productId, userId, userName, reviewMessage, reviewValue } =
       req.body;
-
+   console.log(req.body)
     const order = await Order.findOne({
       userId,
       "cartItems.productId": productId,
@@ -42,6 +43,7 @@ export const addProductReview = async (req, res) => {
     });
 
     await newReview.save();
+    console.log(newReview)
 
     const reviews = await ProductReview.find({ productId });
     const totalReviewsLength = reviews.length;
