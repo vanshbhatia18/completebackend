@@ -5,10 +5,10 @@ import { ApiResponse } from "../../utils/ApiResponse.js";
 import { cloudinaryUpload } from "../../utils/cloudinary.js";
 // GET filtered and sorted products
    export const uploadImage = asyncHandler(async (req,res)=> {
-    console.log(req.file, "the file conatin info");
+    
     
         const value= await cloudinaryUpload(req.file?.path);
-        console.log(value,"the value is")
+      
 
         return res.status(200).json(new ApiResponse(200,{imageUrl:value.url},"image added successfully"))
 

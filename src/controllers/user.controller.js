@@ -38,7 +38,7 @@ const registorUser = asyncHandler(async (req, res) => {
         return val.trim()==="";
      })
      if(isempty) {
-    //  console.log("values are empty")
+    
     throw new ApiError(402, "all feild id needed");
      }
 
@@ -50,8 +50,7 @@ const registorUser = asyncHandler(async (req, res) => {
       password,
       
     });
-   // console.log(user,"the user is")
-    // in select we add the feilds which we dont want by adding - sign
+   
     const createdUser = await User.findById(user._id).select(
       "-password -refreshToken"
     );
@@ -102,7 +101,9 @@ const loginUser = asyncHandler(async (req, res) => {
  
   const options = {
     httpOnly: true,
-    secured: true,
+    secure: true,
+    sameSite:"none",
+    path:"/"
   
     
   };
@@ -139,7 +140,10 @@ const logoutUser = asyncHandler(async (req, res) => {
   );
   const options = {
     httpOnly: true,
-    secured: true,
+    secure: true,
+    sameSite:"none",
+    path:"/"
+
     
   };
 
@@ -152,7 +156,7 @@ const logoutUser = asyncHandler(async (req, res) => {
 
 const refreshAccessToken = asyncHandler(async (req, res) => {
   try {
-    console.log("refresh token called")
+    
     const incomingRefreshToken =
       req.cookies.refreshToken || req.body.refreshToken;
     
@@ -181,7 +185,9 @@ const refreshAccessToken = asyncHandler(async (req, res) => {
 
     const options = {
       httpOnly: true,
-      secured: true,
+      secure: true,
+      sameSite:"none",
+      path:"/"
     };
     const { accessToken, newRefreshToken } = await generateAccessandAccessToken(
       user._id

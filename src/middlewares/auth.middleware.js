@@ -5,7 +5,7 @@ import { User } from "../models/user.model.js";
 import jwt from "jsonwebtoken";
 const jwtVerify = asyncHandler(async (req, res, next) => {
   try {
-    console.log( req.cookies?.accessToken )
+    
     const token =   req.cookies?.accessToken ||
       req.header("Authorization")?.replace("Bearer ", "");
      console.log(token,"the token")
@@ -14,11 +14,11 @@ const jwtVerify = asyncHandler(async (req, res, next) => {
     }
 
     const decodedToken = jwt.verify(token, process.env.ACCESS_TOKEN_SECRET);
-    console.log("the decoded token is ", decodedToken);
+    
     const user = await User.findById(decodedToken?._id).select(
       "-passwor -refreshToken"
     );
-   console.log(user,'the user after logut')
+   
     if (!user) {
       // discuss about frontend
       throw new ApiError(401, "Invalid access token");
